@@ -3,9 +3,7 @@ import { BaileysProvider as Provider } from "@builderbot/provider-baileys";
 import { MysqlAdapter as Database } from "@builderbot/database-mysql";
 import { ApiService } from "../services/apiService";
 import { typing } from "../utils/presence";
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import { empresaFlow } from "./empresaFlow";
 
 export const limitesCreditoFlow = addKeyword<Provider, Database>([
   "6",
@@ -13,7 +11,7 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
   "6️⃣ Limites de credito disponibles",
   "Limites de credito disponibles",
 ])
-  .addAction(async (ctx, { flowDynamic, provider }) => {
+  .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
     await typing(ctx, provider);
 
     // Primero validamos al vendedor
@@ -26,7 +24,6 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
         await flowDynamic(
           "❌ No se pudo identificar tu información de vendedor. Por favor, intenta más tarde."
         );
-        // Mensaje final
         await typing(ctx, provider);
         await flowDynamic(
           "¿Deseas ver otra información? Escribe *menu* para volver al menú principal."
@@ -38,144 +35,66 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
         sellerData.code || sellerData.U_OS_CODIGO || sellerData.codigo;
       console.log("Código del vendedor obtenido:", sellerCode);
 
-      // Mostrar opciones para seleccionar empresa
-      await flowDynamic(
-        [
-          "📊 *CONSULTA DE LÍMITES DE CRÉDITO*",
-          "",
-          "Selecciona la empresa para consultar los límites de crédito disponibles:",
-          "",
-          "F Fertica",
-          "C Cadelga",
-          "",
-          "Envía la letra correspondiente.",
-        ].join("\n")
-      );
+      // Guardar el código del vendedor en el estado
+      await state.update({ sellerCode });
 
-      // Guardar el código del vendedor para usarlo después
-      ctx.vendorCode = sellerCode;
+      // Ir al flujo de selección de empresa
+      return gotoFlow(empresaFlow);
     } catch (error) {
       console.error("Error en limitesCreditoFlow:", error);
       await flowDynamic(
         "❌ Hubo un error al procesar tu solicitud. Intenta más tarde."
       );
-      // Mensaje final
       await typing(ctx, provider);
       await flowDynamic(
         "¿Deseas ver otra información? Escribe *menu* para volver al menú principal."
       );
     }
   })
-  .addAnswer(
-    "Selecciona la empresa",
-    { capture: true },
-    async (ctx, { flowDynamic, provider }) => {
-      await typing(ctx, provider);
-      const respuesta = ctx.body.toLowerCase().trim();
-      let empresa = "";
+  .addAction(async (ctx, { flowDynamic, provider, state }) => {
+    await typing(ctx, provider);
+    
+    try {
+      const empresa = await state.get("empresaSeleccionada");
+      const sellerCode = await state.get("sellerCode");
 
-      // Utilizar números en lugar de letras para diferenciar del otro flujo
-      if (respuesta === "F" || respuesta === "f" || respuesta === "fertica") {
-        empresa = "Fertica";
-      } else if (
-        respuesta === "C" ||
-        respuesta === "c" ||
-        respuesta === "cadelga"
-      ) {
-        empresa = "Cadelga";
-      } else {
+      if (!empresa || !sellerCode) {
         await flowDynamic(
-          "❌ Opción no válida. Por favor escribe F para Fertica o C para Cadelga."
-        );
-        // Mensaje final
-        await typing(ctx, provider);
-        await flowDynamic(
-          "¿Deseas ver otra información? Escribe *menu* para volver al menú principal."
+          "❌ No se pudo obtener la información necesaria. Por favor, intenta nuevamente."
         );
         return;
       }
 
-      try {
-        const phone = ctx.from;
-        // Recuperar el código del vendedor guardado anteriormente
-        const sellerData = await ApiService.validateSeller(phone);
-        const sellerCode =
-          sellerData.code || sellerData.U_OS_CODIGO || sellerData.codigo;
-        console.log("Código del vendedor obtenido:", sellerCode);
-        // Consultar los límites de crédito
-        await flowDynamic(
-          `⏳ Consultando límites de crédito para ${empresa}...`
-        );
-        const creditLimitData = await ApiService.getCreditLimit(
-          sellerCode,
-          empresa
-        );
+      // Consultar límites de crédito para la empresa seleccionada
+      const responseData = await ApiService.getCreditLimit(sellerCode, empresa);
+      
+      if (responseData && responseData.response && responseData.response.result) {
+        const creditData = responseData.response.result;
+        
+        const messages = [
+          `💳 *LÍMITES DE CRÉDITO - ${empresa.toUpperCase()}*`,
+          "",
+          `Límite total: $${creditData.limiteTotal.toFixed(2)}`,
+          `Límite disponible: $${creditData.limiteDisponible.toFixed(2)}`,
+          `Utilizado: $${creditData.utilizado.toFixed(2)}`,
+          `Porcentaje utilizado: ${creditData.porcentajeUtilizado.toFixed(2)}%`
+        ];
 
-        if (
-          creditLimitData &&
-          creditLimitData.success &&
-          creditLimitData.base64Content
-        ) {
-          try {
-            // Crear una carpeta para guardar el PDF temporalmente
-            const tempDir = path.join(process.cwd(), 'temp');
-            if (!fs.existsSync(tempDir)) {
-              fs.mkdirSync(tempDir, { recursive: true });
-            }
-            
-            // Crear un nombre de archivo único
-            const fileName = `LimitesCredito_${empresa}_${Date.now()}.pdf`;
-            const filePath = path.join(tempDir, fileName);
-            
-            // Guardar el PDF en el sistema de archivos
-            fs.writeFileSync(filePath, Buffer.from(creditLimitData.base64Content, 'base64'));
-            
-            // Mensaje informativo
-            await flowDynamic(
-              `📄 *Límites de crédito disponibles - ${empresa}*\n\nAquí tienes el reporte con los límites de crédito actualizados para tus clientes.`
-            );
-            
-            // Enviar el PDF usando flowDynamic con la ruta local
-            await flowDynamic([
-              {
-                body: `Límites de crédito para ${empresa}`,
-                media: filePath
-              }
-            ]);
-            
-            // Eliminar el archivo después de enviarlo (opcional)
-            setTimeout(() => {
-              try {
-                fs.unlinkSync(filePath);
-                console.log(`Archivo temporal eliminado: ${filePath}`);
-              } catch (err) {
-                console.error(`Error al eliminar archivo temporal: ${err}`);
-              }
-            }, 5000); // 5 segundos de retraso para asegurarse que se haya enviado
-            
-          } catch (error) {
-            console.error("Error enviando PDF:", error);
-            await flowDynamic("❌ Error al enviar el documento PDF. Intenta más tarde.");
-          }
-        } else {
-          await flowDynamic(
-            `❌ No se encontraron datos de límites de crédito para ${empresa}. Intenta más tarde.`
-          );
-        }
-      } catch (error) {
-        console.error(
-          `Error consultando límites de crédito para ${empresa}:`,
-          error
-        );
+        await flowDynamic(messages.join("\n"));
+      } else {
         await flowDynamic(
-          "❌ Hubo un error al obtener los límites de crédito. Intenta más tarde."
+          "❌ No se encontraron datos de límites de crédito. Intenta más tarde."
         );
       }
-
-      // Mensaje final
-      await typing(ctx, provider);
+    } catch (error) {
+      console.error("Error obteniendo límites de crédito:", error);
       await flowDynamic(
-        "¿Deseas ver otra información? Escribe *menu* para volver al menú principal."
+        "❌ Hubo un error al obtener los límites de crédito. Intenta más tarde."
       );
     }
-  );
+
+    await typing(ctx, provider);
+    await flowDynamic(
+      "¿Deseas ver otra información? Escribe *menu* para volver al menú principal."
+    );
+  });
