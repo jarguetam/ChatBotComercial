@@ -111,7 +111,7 @@ export const welcomeFlow = addKeyword<Provider, Database>([
       await flowDynamic([
         "Puedo ayudarte con información sobre:",
         "",
-        "• Metas mensuales y KPIs",
+        "• Meta del mes",
         "• Datos de ventas recientes",
         "• Análisis de clientes importantes",
         "• Productos destacados",

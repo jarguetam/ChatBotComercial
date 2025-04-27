@@ -52,7 +52,7 @@ const safetySettings = [
 // Información sobre los servicios disponibles para el contexto de Gemini
 const serviciosDisponibles = {
   metaMensual:
-    "Información sobre metas mensuales, objetivos de ventas y seguimiento de KPIs",
+    "Información sobre meta del mes, objetivos de ventas y seguimiento de KPIs",
   ventas:
     "Datos de ventas de los últimos 6 meses, con análisis de tendencias y comparativas",
   topClientes:

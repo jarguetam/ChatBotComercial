@@ -4,6 +4,18 @@ import { MysqlAdapter as Database } from "@builderbot/database-mysql";
 import { ApiService } from "../services/apiService";
 import { typing } from "../utils/presence";
 import { menuFlow } from "./menuFlow";
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} from "@google/generative-ai";
+
+// Configuración de Gemini
+const API_KEY = process.env.GEMINI_API_KEY;
+let genAI = null;
+if (API_KEY) {
+  genAI = new GoogleGenerativeAI(API_KEY);
+}
 
 export const ventasFlow = addKeyword<Provider, Database>([
   "2",
@@ -73,32 +85,115 @@ export const ventasFlow = addKeyword<Provider, Database>([
 
         ferticaData.sort(sortByDate);
         cadelgaData.sort(sortByDate);
+
+        // Función para formatear números
+        const formatNumber = (num: any) => {
+          try {
+            // Convertir a número si es string
+            const numberValue = typeof num === 'string' ? parseFloat(num) : Number(num);
+            
+            // Verificar si es un número válido
+            if (isNaN(numberValue)) {
+              console.error('Valor no numérico recibido:', num);
+              return '0.00';
+            }
+            
+            // Formatear el número
+            const parts = numberValue.toFixed(2).split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return parts.join('.');
+          } catch (error) {
+            console.error('Error formateando número:', error);
+            return '0.00';
+          }
+        };
+
+        // Función para generar mensaje amigable con Gemini
+        const generateFriendlyMessage = async (tipo: string, datos: any[]) => {
+          if (!genAI) return null;
+          
+          const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 256,
+            }
+          });
+
+          const total = datos.reduce((sum, item) => sum + item.TM, 0);
+          const promedio = total / datos.length;
+          const tendencia = datos.length > 1 ? 
+            ((datos[datos.length - 1].TM - datos[0].TM) / datos[0].TM * 100).toFixed(2) : 0;
+
+          const prompt = `Genera un mensaje amigable y analítico sobre las ventas de ${tipo} en los últimos 6 meses. 
+          Usa los siguientes datos:
+          - Total vendido: ${formatNumber(total)} ${tipo === "Fertica" ? "TM" : "USD"}
+          - Promedio mensual: ${formatNumber(promedio)} ${tipo === "Fertica" ? "TM" : "USD"}
+          - Tendencia: ${formatNumber(tendencia)}%
+          
+          El mensaje debe ser en español, profesional pero motivacional, y debe incluir emojis relevantes. 
+          No debe exceder 3 líneas.`;
+          
+          try {
+            const result = await model.generateContent(prompt);
+            return result.response.text().trim();
+          } catch (error) {
+            console.error("Error generando mensaje con Gemini:", error);
+            return null;
+          }
+        };
+
         await typing(ctx, provider);
         // Mostrar ventas de Fertica
         if (ferticaData.length > 0) {
-          const ferticaMensajes = [
-            "📈 *VENTAS ÚLTIMOS 6 MESES - FERTICA*",
+          let ferticaMessage = "";
+          if (genAI) {
+            const friendlyMessage = await generateFriendlyMessage("Fertica", ferticaData);
+            if (friendlyMessage) {
+              ferticaMessage = friendlyMessage + "\n\n📊 *DETALLE DE VENTAS FERTICA*";
+            } else {
+              ferticaMessage = "📈 *VENTAS ÚLTIMOS 6 MESES - FERTICA*";
+            }
+          } else {
+            ferticaMessage = "📈 *VENTAS ÚLTIMOS 6 MESES - FERTICA*";
+          }
+
+          const ferticaDetails = [
+            ferticaMessage,
             ...ferticaData.map(
-              (item) => `• ${item.Mes} ${item.Año}: ${item.TM.toFixed(2)} TM`
+              (item) => `• ${item.Mes} ${item.Año}: ${formatNumber(item.TM)} TM`
             ),
-            `*Total Fertica: ${ferticaData.reduce((sum, item) => sum + item.TM, 0).toFixed(2)} TM*`
+            `*Total Fertica: ${formatNumber(ferticaData.reduce((sum, item) => sum + item.TM, 0))} TM*`
           ];
-          await flowDynamic(ferticaMensajes.join("\n"), { delay: 1500 });
+          await flowDynamic(ferticaDetails.join("\n"), { delay: 1500 });
           await typing(ctx, provider);
         }
 
         // Mostrar ventas de Cadelga
         if (cadelgaData.length > 0) {
-          const cadelgaMensajes = [
-            "💰 *VENTAS ÚLTIMOS 6 MESES - CADELGA*",
+          let cadelgaMessage = "";
+          if (genAI) {
+            const friendlyMessage = await generateFriendlyMessage("Cadelga", cadelgaData);
+            if (friendlyMessage) {
+              cadelgaMessage = friendlyMessage + "\n\n💰 *DETALLE DE VENTAS CADELGA*";
+            } else {
+              cadelgaMessage = "💰 *VENTAS ÚLTIMOS 6 MESES - CADELGA*";
+            }
+          } else {
+            cadelgaMessage = "💰 *VENTAS ÚLTIMOS 6 MESES - CADELGA*";
+          }
+
+          const cadelgaDetails = [
+            cadelgaMessage,
             ...cadelgaData.map(
-              (item) => `• ${item.Mes} ${item.Año}: $ ${item.TM.toFixed(2)}`
+              (item) => `• ${item.Mes} ${item.Año}: $ ${formatNumber(item.TM)}`
             ),
-            `*Total Cadelga: $ ${cadelgaData.reduce((sum, item) => sum + item.TM, 0).toFixed(2)}*`
+            `*Total Cadelga: $ ${formatNumber(cadelgaData.reduce((sum, item) => sum + item.TM, 0))}*`
           ];
-          await flowDynamic(cadelgaMensajes.join("\n"), { delay: 1500 });
+          await flowDynamic(cadelgaDetails.join("\n"), { delay: 1500 });
           await typing(ctx, provider);
         }
+
         if (ferticaData.length === 0 && cadelgaData.length === 0) {
           await flowDynamic(
             "❌ No se encontraron datos de ventas. Intenta más tarde."
