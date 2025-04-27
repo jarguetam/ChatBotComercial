@@ -104,15 +104,26 @@ export class ApiService {
         "Consultando inventario en tránsito para la empresa:",
         empresa
       );
-      const response = await apiClient.get(
-        `/api/DataSellers/GetTransitProduct?codigo=${empresa}`
-      );
-      console.log(
-        "Respuesta de GetTransitProduct:",
-        JSON.stringify(response.data)
-      );
-      // Devolvemos la respuesta completa para poder acceder a la estructura anidada
-      return response.status === 200 ? response.data : null;
+      const endpoint = "InventarioTransito/" + empresa;
+      // Realizar la solicitud a la API
+      const response = await apiClientReports.get(endpoint);
+      
+      // Verificar la respuesta y retornar los datos
+      if (response.status === 200 && response.data) {
+        // La respuesta contiene el documento en base64
+        const responseData = response.data;
+        
+        // Verificar que la respuesta tenga la estructura esperada
+        if (
+          responseData.success && 
+          responseData.fileName && 
+          responseData.contentType && 
+          responseData.base64Content
+        ) {
+          return responseData;
+        }
+      }
+      return null;
     } catch (error) {
       console.error("Error consultando inventario:", error);
       return null;

@@ -4,6 +4,9 @@ import { MysqlAdapter as Database } from "@builderbot/database-mysql";
 import { ApiService } from "../services/apiService";
 import { typing } from "../utils/presence";
 import { empresaFlow } from "./empresaFlow";
+import fs from 'fs';
+import path from 'path';
+
 
 export const limitesCreditoFlow = addKeyword<Provider, Database>([
   "6",
@@ -13,6 +16,14 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
 ])
   .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
     await typing(ctx, provider);
+
+    // Verificamos si ya tenemos una empresa seleccionada
+    const empresaSeleccionada = await state.get("empresaSeleccionada");
+    if (empresaSeleccionada) {
+      // Ya tenemos una empresa, continuamos con el siguiente paso
+      console.log("Empresa ya seleccionada:", empresaSeleccionada);
+      return;
+    }
 
     // Primero validamos al vendedor
     const phone = ctx.from;
@@ -38,6 +49,9 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
       // Guardar el código del vendedor en el estado
       await state.update({ sellerCode });
 
+      // Establecemos que venimos del flujo de límites de crédito
+      await state.update({ flujoAnterior: "limitesCredito" });
+
       // Ir al flujo de selección de empresa
       return gotoFlow(empresaFlow);
     } catch (error) {
@@ -53,7 +67,7 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
   })
   .addAction(async (ctx, { flowDynamic, provider, state }) => {
     await typing(ctx, provider);
-    
+
     try {
       const empresa = await state.get("empresaSeleccionada");
       const sellerCode = await state.get("sellerCode");
@@ -66,21 +80,49 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
       }
 
       // Consultar límites de crédito para la empresa seleccionada
-      const responseData = await ApiService.getCreditLimit(sellerCode, empresa);
-      
-      if (responseData && responseData.response && responseData.response.result) {
-        const creditData = responseData.response.result;
-        
-        const messages = [
-          `💳 *LÍMITES DE CRÉDITO - ${empresa.toUpperCase()}*`,
-          "",
-          `Límite total: $${creditData.limiteTotal.toFixed(2)}`,
-          `Límite disponible: $${creditData.limiteDisponible.toFixed(2)}`,
-          `Utilizado: $${creditData.utilizado.toFixed(2)}`,
-          `Porcentaje utilizado: ${creditData.porcentajeUtilizado.toFixed(2)}%`
-        ];
+      const creditLimitData = await ApiService.getCreditLimit(sellerCode, empresa);
 
-        await flowDynamic(messages.join("\n"));
+      if (creditLimitData &&
+        creditLimitData.success &&
+        creditLimitData.base64Content) {
+        // Crear una carpeta para guardar el PDF temporalmente
+        const tempDir = path.join(process.cwd(), "temp");
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        // Crear un nombre de archivo único
+        const fileName = `LimitesCredito_${empresa}_${Date.now()}.pdf`;
+        const filePath = path.join(tempDir, fileName);
+
+        // Guardar el PDF en el sistema de archivos
+        fs.writeFileSync(
+          filePath,
+          Buffer.from(creditLimitData.base64Content, "base64")
+        );
+
+        // Mensaje informativo
+        await flowDynamic(
+          `📄 *Límites de crédito disponibles - ${empresa}*\n\nAquí tienes el reporte con los límites de crédito actualizados para tus clientes.`
+        );
+
+        // Enviar el PDF usando flowDynamic con la ruta local
+        await flowDynamic([
+          {
+            body: `Límites de crédito para ${empresa}`,
+            media: filePath,
+          },
+        ]);
+
+        // Eliminar el archivo después de enviarlo (opcional)
+        setTimeout(() => {
+          try {
+            fs.unlinkSync(filePath);
+            console.log(`Archivo temporal eliminado: ${filePath}`);
+          } catch (err) {
+            console.error(`Error al eliminar archivo temporal: ${err}`);
+          }
+        }, 5000); // 5 segundos de retraso para asegurarse que se haya enviado
       } else {
         await flowDynamic(
           "❌ No se encontraron datos de límites de crédito. Intenta más tarde."
@@ -92,6 +134,9 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
         "❌ Hubo un error al obtener los límites de crédito. Intenta más tarde."
       );
     }
+
+    // Limpiamos las variables de estado para futuros usos
+    await state.update({ flujoAnterior: null });
 
     await typing(ctx, provider);
     await flowDynamic(
