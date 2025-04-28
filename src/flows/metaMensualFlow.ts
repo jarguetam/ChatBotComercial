@@ -178,8 +178,17 @@ export const metaMensualFlow = addKeyword<Provider, Database>([
       } else {
         await flowDynamic("No se encontraron datos relevantes para mostrar.");
       }
+
+      // Añadir mensaje para preguntar qué más desea saber o volver al menú
+      await typing(ctx, provider);
+      await flowDynamic("¿Qué más deseas saber? Escribe *menu* para volver al menú principal o indica qué otra información necesitas.");
+      
     } catch (error) {
       console.error("Error en metaMensualFlow:", error);
       await flowDynamic("Hubo un error al procesar la solicitud. Por favor, intenta más tarde.");
+      
+      // Añadir mensaje para volver al menú incluso en caso de error
+      await typing(ctx, provider);
+      await flowDynamic("Escribe *menu* para volver al menú principal.");
     }
   });

@@ -120,9 +120,7 @@ export const ventasFlow = addKeyword<Provider, Database>([
               .map(
                 (item) =>
                   `*${getMesEspanol(item.Mes)} ${item.Año}:*\n` +
-                  `Meta: $${formatNumber(item.Meta_Mes || item.TM)}\n` +
-                  `Venta: $${formatNumber(item.Venta_Mes || item.TM)}\n` +
-                  `Cumplimiento: ${item.Porcentaje_Cumplimiento || '0'}%\n`
+                  `Venta: $${formatNumber(item.TM)}\n`
               )
               .join("\n");
         }
@@ -136,9 +134,7 @@ export const ventasFlow = addKeyword<Provider, Database>([
               .map(
                 (item) =>
                   `*${getMesEspanol(item.Mes)} ${item.Año}:*\n` +
-                  `Meta: $${formatNumber(item.Meta_Mes || item.TM)}\n` +
-                  `Venta: $${formatNumber(item.Venta_Mes || item.TM)}\n` +
-                  `Cumplimiento: ${item.Porcentaje_Cumplimiento || '0'}%\n`
+                  `Venta: $${formatNumber(item.TM)}\n`
               )
               .join("\n");
         }
