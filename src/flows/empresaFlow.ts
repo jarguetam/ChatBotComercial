@@ -1,18 +1,9 @@
 import { addKeyword } from "@builderbot/bot";
 import { BaileysProvider as Provider } from "@builderbot/provider-baileys";
 import { MysqlAdapter as Database } from "@builderbot/database-mysql";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { typing } from "../utils/presence";
-import { menuFlow } from "./menuFlow";
-import { limitesCreditoFlow } from "./limitesCreditoFlow";
-import { inventarioFlow } from "./inventarioFlow";
-
-// Verificamos si tenemos configurado Gemini
-const API_KEY = process.env.GEMINI_API_KEY;
-let genAI = null;
-if (API_KEY) {
-  genAI = new GoogleGenerativeAI(API_KEY);
-}
+import { geminiAgent } from "./geminiAgent";
+import { flowOrchestrator } from "./flowOrchestrator";
 
 export const empresaFlow = addKeyword<Provider, Database>([
   "empresa",
@@ -48,16 +39,8 @@ export const empresaFlow = addKeyword<Provider, Database>([
     }
 
     // Si no encontramos las palabras clave directas, usamos Gemini
-    if (!empresaSeleccionada && genAI) {
+    if (!empresaSeleccionada) {
       try {
-        const model = genAI.getGenerativeModel({
-          model: "gemini-1.5-flash",
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 256,
-          },
-        });
-
         const prompt = `Determina qué empresa está seleccionando el usuario entre dos opciones: Fertica o Cadelga.
         
         El mensaje del usuario es: "${userMessage}"
@@ -68,7 +51,15 @@ export const empresaFlow = addKeyword<Provider, Database>([
         
         Respuesta:`;
 
-        const result = await model.generateContent(prompt);
+        // Usar el modelo Gemini centralizado en geminiAgent
+        const geminiModel = await geminiAgent.getModel({
+          model: "gemini-1.5-flash",
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 256,
+          }
+        });
+        const result = await geminiModel.generateContent(prompt);
         const geminiResponse = result.response.text().trim().toLowerCase();
 
         if (geminiResponse === "fertica") {
@@ -95,18 +86,36 @@ export const empresaFlow = addKeyword<Provider, Database>([
       await seleccionarEmpresa(empresaSeleccionada, state, flowDynamic);
 
       // Si venimos de un flujo específico, continuamos con ese flujo
-      if (flujoAnterior === "limitesCredito") {
+      if (flujoAnterior === "limitesCredito" || flujoAnterior === "credito") {
         // Limpiamos el flujo anterior para futuros usos
-        await state.update({ flujoAnterior: null });
-        return gotoFlow(limitesCreditoFlow);
+        await state.update({ flujoAnterior: null, currentFlow: "credito" });
+        // Usar el orquestrador para manejar el flujo
+        const intention = { flujo: "credito" };
+        return await flowOrchestrator.routeToFlow(
+          intention, 
+          ctx, 
+          { flowDynamic, provider, state, gotoFlow }
+        );
       } else if (flujoAnterior === "inventario") {
         // Limpiamos el flujo anterior para futuros usos
-        await state.update({ flujoAnterior: null });
-        return gotoFlow(inventarioFlow);
+        await state.update({ flujoAnterior: null, currentFlow: "inventario" });
+        // Usar el orquestrador para manejar el flujo
+        const intention = { flujo: "inventario" };
+        return await flowOrchestrator.routeToFlow(
+          intention, 
+          ctx, 
+          { flowDynamic, provider, state, gotoFlow }
+        );
       }
 
       // Por defecto, volvemos al menú
-      return gotoFlow(menuFlow);
+      await state.update({ currentFlow: "menu" });
+      const intention = { flujo: "menu" };
+      return await flowOrchestrator.routeToFlow(
+        intention, 
+        ctx, 
+        { flowDynamic, provider, state, gotoFlow }
+      );
     } else {
       // Si no pudimos determinar la empresa, pedimos aclaración
       await flowDynamic(

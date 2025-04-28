@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: chatbot-comercial
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${PORT:-3008}:${PORT:-3008}"
+    volumes:
+      - ./bot_sessions:/app/bot_sessions
+      - ./assets:/app/assets
+    environment:
+      - PORT=${PORT:-3008}
+      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER:-botuser}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-botpassword}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-botdb}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - mysql
+    networks:
+      - bot-network
+
+  mysql:
+    container_name: bot-mysql
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-botdb}
+      - MYSQL_USER=${MYSQL_USER:-botuser}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-botpassword}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - bot-network
+
+networks:
+  bot-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local 

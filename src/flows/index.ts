@@ -6,4 +6,7 @@ export { topProductosFlow } from './topProductosFlow';
 export { inventarioFlow } from './inventarioFlow';
 export { limitesCreditoFlow } from './limitesCreditoFlow';
 export { menuFlow } from './menuFlow';
-export { empresaFlow } from './empresaFlow'; 
+export { empresaFlow } from './empresaFlow';
+export { geminiAgent } from './geminiAgent';
+export { flowOrchestrator } from './flowOrchestrator';
+

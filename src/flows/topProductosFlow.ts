@@ -9,6 +9,11 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from "@google/generative-ai";
+import { ventasFlow } from "./ventasFlow";
+import { topClientesFlow } from "./topClientesFlow";
+import { metaMensualFlow } from "./metaMensualFlow";
+import { inventarioFlow } from "./inventarioFlow";
+import { limitesCreditoFlow } from "./limitesCreditoFlow";
 
 // Configuración de Gemini
 const API_KEY = process.env.GEMINI_API_KEY;
@@ -17,13 +22,41 @@ if (API_KEY) {
   genAI = new GoogleGenerativeAI(API_KEY);
 }
 
+const generationConfig = {
+  temperature: 0.7,
+  topK: 1,
+  topP: 1,
+  maxOutputTokens: 2048,
+};
+
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+];
+
 export const topProductosFlow = addKeyword<Provider, Database>([
   "4",
   "4️⃣",
   "4️⃣ Top Productos",
   "Top Productos",
+  "productos",
+  "PRODUCTOS",
 ])
-  .addAction(async (ctx, { flowDynamic, provider }) => {
+  .addAction(async (ctx, { flowDynamic, provider, state }) => {
     const phone = ctx.from;
     console.log("Número de teléfono en topProductosFlow:", phone);
 
@@ -33,9 +66,6 @@ export const topProductosFlow = addKeyword<Provider, Database>([
         await flowDynamic(
           "❌ No se pudo identificar tu información de vendedor. Por favor, intenta más tarde."
         );
-        // Agregar mensaje final aquí
-        await typing(ctx, provider);
-        await flowDynamic("¿Deseas ver otra información? Escribe *menu* para volver al menú principal.");
         return;
       }
       await typing(ctx, provider);
@@ -105,7 +135,7 @@ export const topProductosFlow = addKeyword<Provider, Database>([
           - Producto top: ${productoTop.NombreProducto} con ${formatNumber(productoTop.TotalVentas)} ${tipo === "Fertica" ? "TM" : "USD"}
           
           El mensaje debe ser en español, profesional pero motivacional, y debe incluir emojis relevantes. 
-          No debe exceder 3 líneas.`;
+          No debe exceder 5 líneas.`;
           
           try {
             const result = await model.generateContent(prompt);
@@ -180,18 +210,73 @@ export const topProductosFlow = addKeyword<Provider, Database>([
           "❌ No se encontraron datos de productos. Intenta más tarde."
         );
       }
-      
-      // Agregar mensaje final aquí
-      await typing(ctx, provider);
-      await flowDynamic("¿Deseas ver otra información? Escribe *menu* para volver al menú principal.");
     } catch (error) {
       console.error("Error obteniendo top productos:", error);
       await flowDynamic(
         "❌ Hubo un error al obtener tus productos más vendidos. Intenta más tarde."
       );
-      
-      // Agregar mensaje final aquí también
-      await typing(ctx, provider);
-      await flowDynamic("¿Deseas ver otra información? Escribe *menu* para volver al menú principal.");
     }
-  }); 
+    await typing(ctx, provider);
+    await flowDynamic("¿Deseas ver otra información? Escribe *menu* para volver al menú principal.");
+  })
+  .addAnswer(
+    "",
+    { capture: true },
+    async (ctx, { flowDynamic, provider, gotoFlow }) => {
+      const userMessage = ctx.body.toLowerCase();
+      
+      // Verificar si el usuario quiere volver al menú
+      if (userMessage === "menu" || userMessage === "menú" || userMessage === "volver") {
+        await ctx.state.update({ currentFlow: "menu" });
+        return gotoFlow(menuFlow);
+      }
+      
+      // Si no es un comando de menú, procesar con Gemini
+      try {
+        const model = genAI.getGenerativeModel({
+          model: "gemini-1.5-flash",
+          generationConfig,
+          safetySettings,
+        });
+
+        const prompt = `El usuario está en el flujo de productos y ha escrito: "${userMessage}"
+        
+        INSTRUCCIONES:
+        1. Si el usuario quiere ver otro tipo de información (ventas, clientes, etc.), responde con la palabra clave correspondiente.
+        2. Si el usuario quiere volver al menú o hacer una pregunta general, responde con "menu".
+        3. Si la consulta es específica sobre productos, responde de forma conversacional.
+        
+        Responde con una sola palabra clave o un mensaje conversacional.`;
+
+        const result = await model.generateContent(prompt);
+        const geminiResponse = result.response.text().trim().toLowerCase();
+
+        if (geminiResponse === "menu") {
+          await ctx.state.update({ currentFlow: "menu" });
+          return gotoFlow(menuFlow);
+        } else if (geminiResponse === "ventas") {
+          await ctx.state.update({ currentFlow: "ventas" });
+          return gotoFlow(ventasFlow);
+        } else if (geminiResponse === "clientes") {
+          await ctx.state.update({ currentFlow: "clientes" });
+          return gotoFlow(topClientesFlow);
+        } else if (geminiResponse === "meta") {
+          await ctx.state.update({ currentFlow: "meta" });
+          return gotoFlow(metaMensualFlow);
+        } else if (geminiResponse === "inventario") {
+          await ctx.state.update({ currentFlow: "inventario" });
+          return gotoFlow(inventarioFlow);
+        } else if (geminiResponse === "credito") {
+          await ctx.state.update({ currentFlow: "credito" });
+          return gotoFlow(limitesCreditoFlow);
+        } else {
+          await flowDynamic(geminiResponse);
+        }
+      } catch (error) {
+        console.error("Error procesando respuesta:", error);
+        await flowDynamic(
+          "Lo siento, no pude procesar tu solicitud. ¿Podrías intentarlo de nuevo o escribir *menu* para volver al menú principal?"
+        );
+      }
+    }
+  ); 

@@ -104,7 +104,7 @@ export const topClientesFlow = addKeyword<Provider, Database>([
           - Cliente top: ${clienteTop.NombreCliente} con ${formatNumber(clienteTop.TotalVentas)} ${tipo === "Fertica" ? "TM" : "USD"}
           
           El mensaje debe ser en español, profesional pero motivacional, y debe incluir emojis relevantes. 
-          No debe exceder 3 líneas.`;
+          No debe exceder 5 líneas.`;
           
           try {
             const result = await model.generateContent(prompt);

@@ -16,11 +16,31 @@ import {
   limitesCreditoFlow,
   menuFlow,
   empresaFlow,
+  geminiAgent,
+  flowOrchestrator,
 } from "./flows";
 import { config } from "./config";
 import { handleConnectionUpdate } from "./utils/reconnect";
 
 const PORT = process.env.PORT ?? 3008;
+
+// Verificar configuración de Gemini
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("ADVERTENCIA: GEMINI_API_KEY no está definida en el archivo .env");
+  console.warn("El orquestador de flujos no funcionará correctamente sin esta clave.");
+}
+
+// Inicializar el mapa de flujos del orquestador
+flowOrchestrator.initFlowMap({
+  menu: menuFlow,
+  meta: metaMensualFlow,
+  ventas: ventasFlow, 
+  clientes: topClientesFlow,
+  productos: topProductosFlow,
+  inventario: inventarioFlow,
+  credito: limitesCreditoFlow,
+  empresa: empresaFlow,
+});
 
 // Función para iniciar el socket/provider
 let adapterProvider: any;
@@ -115,6 +135,37 @@ const startSock = async () => {
 
         res.writeHead(200, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ status: "ok", number, intent }));
+      })
+    );
+
+    // Nuevo endpoint para procesar mensajes directamente con Gemini
+    adapterProvider.server.post(
+      "/v1/gemini-analyze",
+      handleCtx(async (bot, req, res) => {
+        const { number, message, currentFlow } = req.body;
+        
+        try {
+          // Determinar qué método usar según si ya está en un flujo o no
+          const intention = currentFlow
+            ? await geminiAgent.analyzeFlowInput(message, currentFlow)
+            : await geminiAgent.analyzeMainInput(message);
+          
+          // Responder con la intención detectada
+          res.writeHead(200, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ 
+            status: "ok", 
+            intention,
+            number
+          }));
+        } catch (error) {
+          console.error("Error procesando con Gemini:", error);
+          res.writeHead(500, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ 
+            status: "error", 
+            message: "Error procesando mensaje con Gemini",
+            number
+          }));
+        }
       })
     );
 

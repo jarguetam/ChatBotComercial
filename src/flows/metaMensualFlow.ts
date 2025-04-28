@@ -94,8 +94,8 @@ export const metaMensualFlow = addKeyword<Provider, Database>([
 
           const prompt = `Genera un mensaje amigable y motivacional sobre el progreso de metas para ${tipo}. 
           Usa los siguientes datos:
-          - Meta: ${formatNumber(datos.meta)}
-          - Ventas actuales: ${formatNumber(datos.ventas)}
+          - Meta: ${formatNumber(datos.meta)} ${tipo === "Fertica" ? "TM" : "USD"}
+          - Ventas actuales: ${formatNumber(datos.ventas)} ${tipo === "Fertica" ? "TM" : "USD"}
           - Progreso: ${formatNumber(datos.progreso)}%
           
           El mensaje debe ser en español, motivacional pero profesional, y debe incluir emojis relevantes. 
@@ -155,7 +155,7 @@ export const metaMensualFlow = addKeyword<Provider, Database>([
             } else {
               cadelgaMessage = [
                 "🎯 *META MENSUAL - CADELGA*",
-                `Meta: $ ${vendedor.MetaUSD.toFixed(2)}`,
+                `Meta: $ ${vendedor.MetaUSD.toFixed(2)}`    ,
                 `Ventas: $ ${vendedor.UsdCadelga.toFixed(2)}`,
                 `Progreso: ${vendedor.CumplimientoCad.toFixed(2)}%`
               ].join("\n");

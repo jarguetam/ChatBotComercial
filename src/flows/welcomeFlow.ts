@@ -1,21 +1,13 @@
 import { addKeyword } from "@builderbot/bot";
 import { BaileysProvider as Provider } from "@builderbot/provider-baileys";
 import { MysqlAdapter as Database } from "@builderbot/database-mysql";
-import {
-  GoogleGenerativeAI,
-  HarmCategory,
-  HarmBlockThreshold,
-} from "@google/generative-ai";
 import { ApiService } from "../services/apiService";
 import { typing } from "../utils/presence";
-import { menuFlow } from "./menuFlow";
+import { geminiAgent } from "./geminiAgent";
+import { flowOrchestrator } from "./flowOrchestrator";
 
-// Verificamos si tenemos configurado Gemini (lo usaremos para saludos personalizados)
-const API_KEY = process.env.GEMINI_API_KEY;
-let genAI = null;
-if (API_KEY) {
-  genAI = new GoogleGenerativeAI(API_KEY);
-}
+// Nombre del agente de datos
+const AGENT_NAME = "DataBot";
 
 export const welcomeFlow = addKeyword<Provider, Database>([
   "hi",
@@ -60,38 +52,21 @@ export const welcomeFlow = addKeyword<Provider, Database>([
           isRegistered: true,
           sellerName: sellerName,
           sellerCode: sellerCode,
-          welcomeShown: true // Indicador de que ya se mostró un mensaje de bienvenida
+          welcomeShown: true, // Indicador de que ya se mostró un mensaje de bienvenida
+          currentFlow: "menu"  // Establecer el flujo actual como menú
         });
 
         // Verificar que se haya guardado correctamente
         const storedCode = await state.get("sellerCode");
         console.log("Código almacenado en estado:", storedCode);
 
-        // Si tenemos Gemini, generamos un saludo personalizado
-        if (genAI) {
-          const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 256,
-            }
-          });
-
-          const prompt = `Genera un saludo amigable, breve y profesional para un vendedor llamado ${sellerName}. 
-          El saludo debe ser en español, cálido pero profesional, y debe dar la bienvenida al sistema de información comercial. 
-          Hazlo personal usando su nombre. No uses más de 2 líneas. No agregues opciones ni menús.`;
-          
-          try {
-            const result = await model.generateContent(prompt);
-            const customGreeting = result.response.text().trim();
-            await flowDynamic(customGreeting);
-          } catch (error) {
-            // Si falla Gemini, usamos el saludo predeterminado
-            await flowDynamic(`¡Hola ${sellerName}! 👋 Bienvenido a tu Asistente Comercial. ¿En qué puedo ayudarte hoy?`);
-          }
-        } else {
-          // Mensaje de bienvenida predeterminado si no hay Gemini
-          await flowDynamic(`¡Hola ${sellerName}! 👋 Bienvenido a tu Asistente Comercial. ¿En qué puedo ayudarte hoy?`);
+        // Utilizar el geminiAgent para generar un saludo personalizado
+        try {
+          const customGreeting = await geminiAgent.generateGreeting(sellerName);
+          await flowDynamic(customGreeting);
+        } catch (error) {
+          // Si falla Gemini, usamos el saludo predeterminado
+          await flowDynamic(`¡Hola ${sellerName}! 👋 Soy ${AGENT_NAME}, tu Asistente Comercial. ¿En qué puedo ayudarte hoy?`);
         }
       } else {
         // Actualizar estado como no registrado
@@ -121,8 +96,13 @@ export const welcomeFlow = addKeyword<Provider, Database>([
         "¿Qué información necesitas hoy? Puedes preguntarme directamente."
       ].join("\n"));
 
-      // Dirigimos al flujo de menú para continuar la conversación
-      return gotoFlow(menuFlow);
+      // Dirigimos al flujo de menú usando el orquestrador
+      const intention = { flujo: "menu" };
+      return await flowOrchestrator.routeToFlow(
+        intention,
+        ctx,
+        { flowDynamic, provider, state, gotoFlow }
+      );
 
     } catch (error) {
       console.error("Error en welcomeFlow:", error);
