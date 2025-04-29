@@ -7,7 +7,6 @@ import { empresaFlow } from "./empresaFlow";
 import fs from 'fs';
 import path from 'path';
 
-
 export const limitesCreditoFlow = addKeyword<Provider, Database>([
   "6",
   "6️⃣",
@@ -16,6 +15,18 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
 ])
   .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
     await typing(ctx, provider);
+    
+    // Verificar si venimos desde el flujo de empresas para evitar un ciclo infinito
+    const vieneDesdeFlujoEmpresa = await state.get("vieneDesdeFlujoEmpresa");
+    const empresaSeleccionada = await state.get("empresaSeleccionada");
+    
+    if (vieneDesdeFlujoEmpresa === true && empresaSeleccionada) {
+      console.log("Detectado posible ciclo en limitesCreditoFlow. Ya venimos de seleccionar empresa:", empresaSeleccionada);
+      // Limpiar la marca para futuras interacciones
+      await state.update({ vieneDesdeFlujoEmpresa: false });
+      // Continuar con el flujo normal sin redirigir a selección de empresa
+      return;
+    }
 
     // Primero validamos al vendedor
     const phone = ctx.from;
@@ -41,8 +52,12 @@ export const limitesCreditoFlow = addKeyword<Provider, Database>([
       // Guardar el código del vendedor en el estado
       await state.update({ sellerCode });
 
-      // Establecemos que venimos del flujo de límites de crédito
-      await state.update({ flujoAnterior: "limitesCredito" });
+      // Establecemos el flujo actual como "credito" para que el orquestrador sepa dónde volver
+      await state.update({ 
+        flujoAnterior: "credito",
+        // Asegurar que el flujo actual sea "credito" para evitar confusiones
+        currentFlow: "credito" 
+      });
 
       // Ir al flujo de selección de empresa
       return gotoFlow(empresaFlow);

@@ -87,8 +87,13 @@ export const empresaFlow = addKeyword<Provider, Database>([
 
       // Si venimos de un flujo específico, continuamos con ese flujo
       if (flujoAnterior === "limitesCredito" || flujoAnterior === "credito") {
-        // Limpiamos el flujo anterior para futuros usos
-        await state.update({ flujoAnterior: null, currentFlow: "credito" });
+        console.log("Redirigiendo al flujo de crédito...");
+        // Limpiamos el flujo anterior para futuros usos y marcamos la redirección
+        await state.update({ 
+          flujoAnterior: null, 
+          currentFlow: "credito",
+          vieneDesdeFlujoEmpresa: true 
+        });
         // Usar el orquestrador para manejar el flujo
         const intention = { flujo: "credito" };
         return await flowOrchestrator.routeToFlow(
@@ -97,8 +102,13 @@ export const empresaFlow = addKeyword<Provider, Database>([
           { flowDynamic, provider, state, gotoFlow }
         );
       } else if (flujoAnterior === "inventario") {
-        // Limpiamos el flujo anterior para futuros usos
-        await state.update({ flujoAnterior: null, currentFlow: "inventario" });
+        console.log("Redirigiendo al flujo de inventario...");
+        // Limpiamos el flujo anterior para futuros usos y marcamos la redirección
+        await state.update({ 
+          flujoAnterior: null, 
+          currentFlow: "inventario",
+          vieneDesdeFlujoEmpresa: true 
+        });
         // Usar el orquestrador para manejar el flujo
         const intention = { flujo: "inventario" };
         return await flowOrchestrator.routeToFlow(
@@ -109,6 +119,7 @@ export const empresaFlow = addKeyword<Provider, Database>([
       }
 
       // Por defecto, volvemos al menú
+      console.log("Redirigiendo al menú principal...");
       await state.update({ currentFlow: "menu" });
       const intention = { flujo: "menu" };
       return await flowOrchestrator.routeToFlow(

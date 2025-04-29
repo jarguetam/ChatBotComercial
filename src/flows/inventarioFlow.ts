@@ -15,6 +15,19 @@ export const inventarioFlow = addKeyword<Provider, Database>([
 ])
   .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
     await typing(ctx, provider);
+    
+    // Verificar si venimos desde el flujo de empresas para evitar un ciclo infinito
+    const vieneDesdeFlujoEmpresa = await state.get("vieneDesdeFlujoEmpresa");
+    const empresaSeleccionada = await state.get("empresaSeleccionada");
+    
+    if (vieneDesdeFlujoEmpresa === true && empresaSeleccionada) {
+      console.log("Detectado posible ciclo. Ya venimos de seleccionar empresa:", empresaSeleccionada);
+      // Limpiar la marca para futuras interacciones
+      await state.update({ vieneDesdeFlujoEmpresa: false });
+      // Continuar con el flujo normal sin redirigir a selección de empresa
+      return;
+    }
+    
     // Primero validamos al vendedor
     const phone = ctx.from;
     console.log("Número de teléfono en inventarioFlow:", phone);
@@ -38,8 +51,12 @@ export const inventarioFlow = addKeyword<Provider, Database>([
       // Guardar el código del vendedor en el estado
       await state.update({ sellerCode });
 
-      // Establecemos que venimos del flujo de inventario
-      await state.update({ flujoAnterior: "inventario" });
+      // Establecemos el flujo actual como "inventario" para que el orquestrador sepa dónde volver
+      await state.update({ 
+        flujoAnterior: "inventario",
+        // Asegurar que el flujo actual sea "inventario" para evitar confusiones
+        currentFlow: "inventario"
+      });
 
       // Ir al flujo de selección de empresa
       return gotoFlow(empresaFlow);

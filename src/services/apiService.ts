@@ -104,7 +104,8 @@ export class ApiService {
         "Consultando inventario en tránsito para la empresa:",
         empresa
       );
-      const endpoint = "InventarioTransito/" + empresa;
+
+      const endpoint = "" + empresa=='Fertica'?'InventarioTransitoFER/1':'InventarioTransitoCAD/1';
       // Realizar la solicitud a la API
       const response = await apiClientReports.get(endpoint);
       
