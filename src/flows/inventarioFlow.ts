@@ -15,15 +15,6 @@ export const inventarioFlow = addKeyword<Provider, Database>([
 ])
   .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
     await typing(ctx, provider);
-
-    // Verificamos si ya tenemos una empresa seleccionada
-    const empresaSeleccionada = await state.get("empresaSeleccionada");
-    if (empresaSeleccionada) {
-      // Ya tenemos una empresa, continuamos con el siguiente paso
-      console.log("Empresa ya seleccionada:", empresaSeleccionada);
-      return;
-    }
-
     // Primero validamos al vendedor
     const phone = ctx.from;
     console.log("Número de teléfono en inventarioFlow:", phone);

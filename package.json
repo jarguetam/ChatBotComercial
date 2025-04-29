@@ -15,12 +15,12 @@
     "@builderbot/bot": "1.2.5",
     "@builderbot/database-mysql": "1.2.5",
     "@builderbot/provider-baileys": "1.2.5",
+    "@google/generative-ai": "^0.24.0",
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
     "sharp": "^0.32.6"
   },
   "devDependencies": {
-    "@img/sharp-win32-x64": "^0.33.5",
     "@types/node": "^20.11.30",
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.4.0",
