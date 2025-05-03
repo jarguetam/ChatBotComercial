@@ -9,4 +9,5 @@ export const config = {
   user: process.env.MYSQL_USER || "root",
   database: process.env.MYSQL_DATABASE || "bot",
   password: process.env.MYSQL_PASSWORD || "",
+  reconnect: true,
 }; 

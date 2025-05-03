@@ -16,6 +16,7 @@ export const welcomeFlow = addKeyword<Provider, Database>([
   "buen día",
   "buenas",
   "buenos días",
+  "buenos dias",
   "buenas tardes",
   "buenas noches",
 ])
