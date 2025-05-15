@@ -18,8 +18,6 @@ if (API_KEY) {
 }
 
 export const metaMensualFlow = addKeyword<Provider, Database>([
-  "1",
-  "1️⃣",
   "1️⃣ Meta mensual",
   "Meta mensual",
 ])
@@ -155,7 +153,7 @@ export const metaMensualFlow = addKeyword<Provider, Database>([
             } else {
               cadelgaMessage = [
                 "🎯 *META MENSUAL - CADELGA*",
-                `Meta: $ ${vendedor.MetaUSD.toFixed(2)}`    ,
+                `Meta: $ ${vendedor.MetaUSD.toFixed(2)}`,
                 `Ventas: $ ${vendedor.UsdCadelga.toFixed(2)}`,
                 `Progreso: ${vendedor.CumplimientoCad.toFixed(2)}%`
               ].join("\n");

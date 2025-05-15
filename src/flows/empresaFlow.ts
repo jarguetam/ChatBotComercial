@@ -4,6 +4,9 @@ import { MysqlAdapter as Database } from "@builderbot/database-mysql";
 import { typing } from "../utils/presence";
 import { geminiAgent } from "./geminiAgent";
 import { flowOrchestrator } from "./flowOrchestrator";
+import { ApiService } from "../services/apiService";
+import path from "path";
+import fs from "fs";
 
 export const empresaFlow = addKeyword<Provider, Database>([
   "empresa",
@@ -109,13 +112,103 @@ export const empresaFlow = addKeyword<Provider, Database>([
           currentFlow: "inventario",
           vieneDesdeFlujoEmpresa: true 
         });
-        // Usar el orquestrador para manejar el flujo
+        // Usar el orquestador para manejar el flujo
         const intention = { flujo: "inventario" };
         return await flowOrchestrator.routeToFlow(
           intention, 
           ctx, 
           { flowDynamic, provider, state, gotoFlow }
         );
+      } else if (flujoAnterior === "estadocuenta") {
+        console.log("Redirigiendo al flujo de estado de cuenta...");
+        console.log("Estado antes de la redirección:", {
+          flujoAnterior,
+          empresaSeleccionada,
+          currentFlow: await state.get("currentFlow"),
+          clienteSeleccionado: await state.get("clienteSeleccionado")
+        });
+        
+        // Obtenemos los datos necesarios para generar el estado de cuenta
+        const clienteSeleccionado = await state.get("clienteSeleccionado");
+        
+        if (!clienteSeleccionado) {
+          await flowDynamic("❌ Hubo un problema al recuperar los datos del cliente seleccionado. Por favor, inténtalo nuevamente.");
+          return;
+        }
+        
+        try {
+          // Consultar estado de cuenta para el cliente seleccionado
+          const estadoCuentaData = await ApiService.getEstadoCuenta(
+            clienteSeleccionado.CardCode,
+            empresaSeleccionada
+          );
+
+          if (estadoCuentaData &&
+              estadoCuentaData.success &&
+              estadoCuentaData.base64Content) {
+            // Crear una carpeta para guardar el PDF temporalmente
+            const tempDir = path.join(process.cwd(), "temp");
+            if (!fs.existsSync(tempDir)) {
+              fs.mkdirSync(tempDir, { recursive: true });
+            }
+
+            // Crear un nombre de archivo único
+            const fileName = `EstadoCuenta_${clienteSeleccionado.CardCode}_${empresaSeleccionada}_${Date.now()}.pdf`;
+            const filePath = path.join(tempDir, fileName);
+
+            // Guardar el PDF en el sistema de archivos
+            fs.writeFileSync(
+              filePath,
+              Buffer.from(estadoCuentaData.base64Content, "base64")
+            );
+
+            // Mensaje informativo
+            await flowDynamic(
+              `📄 *Estado de Cuenta - ${clienteSeleccionado.CardName}*\n\nAquí tienes el estado de cuenta actualizado para el cliente.`
+            );
+
+            // Enviar el PDF usando flowDynamic con la ruta local
+            await flowDynamic([
+              {
+                body: `Estado de cuenta para ${clienteSeleccionado.CardName} - ${empresaSeleccionada}`,
+                media: filePath,
+              },
+            ]);
+
+            // Eliminar el archivo después de enviarlo
+            setTimeout(() => {
+              try {
+                fs.unlinkSync(filePath);
+                console.log(`Archivo temporal eliminado: ${filePath}`);
+              } catch (err) {
+                console.error(`Error al eliminar archivo temporal: ${err}`);
+              }
+            }, 5000);
+          } else {
+            await flowDynamic(
+              "❌ No se encontró el estado de cuenta. Intenta más tarde."
+            );
+          }
+        } catch (error) {
+          console.error("Error obteniendo estado de cuenta:", error);
+          await flowDynamic(
+            "❌ Hubo un error al obtener el estado de cuenta. Intenta más tarde."
+          );
+        }
+
+        // Limpiamos las variables de estado para futuros usos
+        await state.update({ 
+          flujoAnterior: null,
+          clienteSeleccionado: null,
+          clientesEncontrados: null,
+          currentFlow: "menu"
+        });
+
+        await typing(ctx, provider);
+        await flowDynamic(
+          "¿Deseas ver otra información? Escribe *menu* para volver al menú principal."
+        );
+        return;
       }
 
       // Por defecto, volvemos al menú

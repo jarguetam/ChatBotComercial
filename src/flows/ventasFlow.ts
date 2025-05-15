@@ -169,7 +169,7 @@ export const ventasFlow = addKeyword<Provider, Database>([
     {
       capture: true,
     },
-    async (ctx, { flowDynamic, provider, gotoFlow }) => {
+    async (ctx, { flowDynamic, provider, gotoFlow, state }) => {
       const userMessage = ctx.body.toLowerCase();
 
       try {
@@ -178,14 +178,14 @@ export const ventasFlow = addKeyword<Provider, Database>([
         
         // Si se detecta la necesidad de cambiar a un flujo específico, establecer valores predeterminados
         if (intention.flujo !== "default") {
-          await flowOrchestrator.setDefaultStateValues(intention.flujo, ctx.state);
+          await flowOrchestrator.setDefaultStateValues(intention.flujo, state);
         }
         
         // Usar el orquestador para manejar la navegación entre flujos
         return await flowOrchestrator.routeToFlow(
           intention,
           ctx,
-          { flowDynamic, provider, state: ctx.state, gotoFlow }
+          { flowDynamic, provider, state, gotoFlow }
         );
       } catch (error) {
         console.error("Error procesando respuesta:", error);

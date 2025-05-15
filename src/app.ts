@@ -1,52 +1,35 @@
 import "dotenv/config";
-import {
-  createBot,
-  createProvider,
-  createFlow,
-} from "@builderbot/bot";
-import { MysqlAdapter as Database } from "@builderbot/database-mysql";
-import { BaileysProvider as Provider } from "@builderbot/provider-baileys";
-import {
-  welcomeFlow,
-  metaMensualFlow,
-  ventasFlow,
-  topClientesFlow,
-  topProductosFlow,
-  inventarioFlow,
-  limitesCreditoFlow,
-  menuFlow,
-  empresaFlow,
-  geminiAgent,
-  flowOrchestrator,
-} from "./flows";
-import { config } from "./config";
-import { handleConnectionUpdate } from "./utils/reconnect";
+import { createBot } from "@builderbot/bot";
+import { provider } from "./provider";
+import { database } from "./database";
+import { flow } from "./flow";
+import fs from 'fs';
+import path from 'path';
 
 const PORT = process.env.PORT ?? 3008;
 
 // Verificar configuración de Gemini
 if (!process.env.GEMINI_API_KEY) {
   console.warn("ADVERTENCIA: GEMINI_API_KEY no está definida en el archivo .env");
-  console.warn("El orquestador de flujos no funcionará correctamente sin esta clave.");
+  console.warn("Los mensajes personalizados con IA no estarán disponibles.");
 }
 
-// Inicializar el mapa de flujos del orquestador
-flowOrchestrator.initFlowMap({
-  menu: menuFlow,
-  meta: metaMensualFlow,
-  ventas: ventasFlow, 
-  clientes: topClientesFlow,
-  productos: topProductosFlow,
-  inventario: inventarioFlow,
-  credito: limitesCreditoFlow,
-  empresa: empresaFlow,
-});
+
+
+// Crear directorio temp si no existe
+const tempDir = path.join(process.cwd(), "temp");
+if (!fs.existsSync(tempDir)) {
+  try {
+    fs.mkdirSync(tempDir, { recursive: true });
+    console.log("Directorio temp creado correctamente");
+  } catch (error) {
+    console.error("Error al crear directorio temp:", error);
+  }
+}
 
 // Función para iniciar el socket/provider
-let adapterProvider: any;
-let adapterDB: any;
-let adapterFlow: any;
-let bot: any;
+let adapterProvider: any = null;
+let bot: any = null;
 
 const startSock = async () => {
   try {
@@ -57,75 +40,42 @@ const startSock = async () => {
       adapterProvider = null;
     }
 
-    // Creamos el proveedor con opciones reducidas para evitar errores
-    adapterProvider = createProvider(Provider);
+    // Configuramos el proveedor
+    adapterProvider = provider;
 
-    // Registramos los eventos de conexión de manera segura
-    try {
-      // @ts-ignore - Accedemos al evento de conexión si está disponible
-      if (adapterProvider.ev && typeof adapterProvider.ev.on === 'function') {
-        adapterProvider.ev.on('connection.update', (update: any) => 
-          handleConnectionUpdate(update, startSock)
-        );
-        console.log("Manejador de conexión registrado correctamente");
-      }
-    } catch (err) {
-      console.warn("No se pudo registrar el manejador de conexión:", err);
-    }
-
-    if (!adapterDB) {
-      adapterDB = new Database(config);
-    }
-
-    if (!adapterFlow) {
-      adapterFlow = createFlow([
-        welcomeFlow,
-        menuFlow,
-        metaMensualFlow,
-        ventasFlow,
-        topClientesFlow,
-        topProductosFlow,
-        inventarioFlow,
-        limitesCreditoFlow,
-        empresaFlow,
-      ]);
-    }
-
+    // Crear el bot con los flujos, el proveedor y la base de datos
     const { handleCtx, httpServer } = await createBot({
-      flow: adapterFlow,
+      flow,
       provider: adapterProvider,
-      database: adapterDB,
+      database,
     });
 
     bot = { handleCtx };
 
+    // Iniciar el servidor HTTP
+    httpServer(+PORT);
+
+    // Endpoint para enviar mensajes
     adapterProvider.server.post(
       "/v1/messages",
       handleCtx(async (bot, req, res) => {
         const { number, message, urlMedia } = req.body;
         await bot.sendMessage(number, message, { media: urlMedia ?? null });
-        return res.end("sended");
+        return res.end("Mensaje enviado");
       })
     );
 
+    // Endpoint para registrar un usuario
     adapterProvider.server.post(
       "/v1/register",
       handleCtx(async (bot, req, res) => {
         const { number, name } = req.body;
-        await bot.dispatch("MENU_FLOW", { from: number, name });
-        return res.end("trigger");
+        await bot.dispatch("WELCOME_FLOW", { from: number, name });
+        return res.end("Usuario registrado");
       })
     );
 
-    adapterProvider.server.post(
-      "/v1/samples",
-      handleCtx(async (bot, req, res) => {
-        const { number, name } = req.body;
-        await bot.dispatch("SAMPLES", { from: number, name });
-        return res.end("trigger");
-      })
-    );
-
+    // Endpoint para agregar o quitar de la lista negra
     adapterProvider.server.post(
       "/v1/blacklist",
       handleCtx(async (bot, req, res) => {
@@ -138,40 +88,7 @@ const startSock = async () => {
       })
     );
 
-    // Nuevo endpoint para procesar mensajes directamente con Gemini
-    adapterProvider.server.post(
-      "/v1/gemini-analyze",
-      handleCtx(async (bot, req, res) => {
-        const { number, message, currentFlow } = req.body;
-        
-        try {
-          // Determinar qué método usar según si ya está en un flujo o no
-          const intention = currentFlow
-            ? await geminiAgent.analyzeFlowInput(message, currentFlow)
-            : await geminiAgent.analyzeMainInput(message);
-          
-          // Responder con la intención detectada
-          res.writeHead(200, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ 
-            status: "ok", 
-            intention,
-            number
-          }));
-        } catch (error) {
-          console.error("Error procesando con Gemini:", error);
-          res.writeHead(500, { "Content-Type": "application/json" });
-          return res.end(JSON.stringify({ 
-            status: "error", 
-            message: "Error procesando mensaje con Gemini",
-            number
-          }));
-        }
-      })
-    );
-
-    // Iniciar el servidor
-    httpServer(+PORT);
-    console.log(`Servidor iniciado en puerto ${PORT}`);
+    console.log(`Chatbot comercial iniciado en puerto ${PORT}`);
   } catch (error) {
     console.error("Error al iniciar el socket:", error);
     console.log("Intentando reconectar en 10 segundos...");
@@ -180,6 +97,7 @@ const startSock = async () => {
 };
 
 const main = async () => {
+  console.log("Iniciando chatbot comercial...");
   await startSock();
 };
 

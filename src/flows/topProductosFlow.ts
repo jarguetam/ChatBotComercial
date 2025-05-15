@@ -222,12 +222,12 @@ export const topProductosFlow = addKeyword<Provider, Database>([
   .addAnswer(
     "",
     { capture: true },
-    async (ctx, { flowDynamic, provider, gotoFlow }) => {
+    async (ctx, { flowDynamic, provider, gotoFlow, state }) => {
       const userMessage = ctx.body.toLowerCase();
       
       // Verificar si el usuario quiere volver al menú
       if (userMessage === "menu" || userMessage === "menú" || userMessage === "volver") {
-        await ctx.state.update({ currentFlow: "menu" });
+        await state.update({ currentFlow: "menu" });
         return gotoFlow(menuFlow);
       }
       
@@ -252,22 +252,22 @@ export const topProductosFlow = addKeyword<Provider, Database>([
         const geminiResponse = result.response.text().trim().toLowerCase();
 
         if (geminiResponse === "menu") {
-          await ctx.state.update({ currentFlow: "menu" });
+          await state.update({ currentFlow: "menu" });
           return gotoFlow(menuFlow);
         } else if (geminiResponse === "ventas") {
-          await ctx.state.update({ currentFlow: "ventas" });
+          await state.update({ currentFlow: "ventas" });
           return gotoFlow(ventasFlow);
         } else if (geminiResponse === "clientes") {
-          await ctx.state.update({ currentFlow: "clientes" });
+          await state.update({ currentFlow: "clientes" });
           return gotoFlow(topClientesFlow);
         } else if (geminiResponse === "meta") {
-          await ctx.state.update({ currentFlow: "meta" });
+          await state.update({ currentFlow: "meta" });
           return gotoFlow(metaMensualFlow);
         } else if (geminiResponse === "inventario") {
-          await ctx.state.update({ currentFlow: "inventario" });
+          await state.update({ currentFlow: "inventario" });
           return gotoFlow(inventarioFlow);
         } else if (geminiResponse === "credito") {
-          await ctx.state.update({ currentFlow: "credito" });
+          await state.update({ currentFlow: "credito" });
           return gotoFlow(limitesCreditoFlow);
         } else {
           await flowDynamic(geminiResponse);

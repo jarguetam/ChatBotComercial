@@ -10,4 +10,8 @@ export const config = {
   database: process.env.MYSQL_DATABASE || "bot",
   password: process.env.MYSQL_PASSWORD || "",
   reconnect: true,
+  connectTimeout: 10000, // 10 segundos
+  acquireTimeout: 10000, // 10 segundos
+  connectionLimit: 10, // Limitar número de conexiones
+  waitForConnections: true, 
 }; 

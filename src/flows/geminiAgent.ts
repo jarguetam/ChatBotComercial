@@ -47,6 +47,7 @@ const serviciosDisponibles = {
   inventario: "Estado del inventario en tránsito, fechas de llegada y cantidades",
   credito: "Información sobre límites de crédito disponibles para clientes",
   empresa: "Selección de empresa (Fertica o Cadelga) para consultas específicas",
+  estadocuenta: "Información sobre el estado de cuenta de un cliente",
 };
 
 // Tipo para la intención detectada
@@ -65,6 +66,7 @@ export type FlowName =
   | "inventario" 
   | "credito" 
   | "empresa"
+  | "estadocuenta"
   | "default"; // Para respuestas conversacionales
 
 export class GeminiAgent {
@@ -104,6 +106,7 @@ INSTRUCCIONES:
    - "inventario": Si necesita información de inventario en tránsito
    - "credito": Si pregunta sobre límites de crédito de clientes
    - "empresa": Si necesita seleccionar o cambiar de empresa (Fertica o Cadelga)
+   - "estadocuenta": Si necesita información sobre el estado de cuenta de un cliente
 
 2. Si identificas CLARAMENTE que el usuario quiere información sobre alguno de estos temas específicos, responde ÚNICAMENTE con la palabra clave correspondiente (meta, ventas, clientes, productos, inventario, credito, empresa).
 
@@ -123,7 +126,8 @@ Responde de forma directa, sin preámbulos ni explicaciones adicionales.`;
         "inventario": true,
         "credito": true,
         "empresa": true,
-        "menu": true,
+        "menu": true, 
+        "estadocuenta": true,
       };
 
       // Verificar si Gemini identificó un flujo específico
@@ -172,7 +176,8 @@ Responde de forma directa, sin preámbulos ni explicaciones adicionales.`;
         "inventario": true,
         "credito": true,
         "empresa": true,
-        "menu": true,
+        "menu": true, 
+        "estadocuenta": true,
       };
 
       // Verificar si Gemini identificó un flujo específico

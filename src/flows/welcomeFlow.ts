@@ -93,6 +93,7 @@ export const welcomeFlow = addKeyword<Provider, Database>([
         "• Productos destacados",
         "• Inventario en tránsito",
         "• Límites de crédito disponibles",
+        "• Estado de cuenta de clientes",
         "",
         "¿Qué información necesitas hoy? Puedes preguntarme directamente."
       ].join("\n"));
