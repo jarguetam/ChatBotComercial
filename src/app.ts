@@ -52,6 +52,17 @@ const startSock = async () => {
 
     bot = { handleCtx };
 
+    // Monitorear errores de conexión
+    adapterProvider.on('connection.error', async (error: any) => {
+      console.error('Error de conexión detectado:', error?.message || error);
+      
+      // Verificar si es un error "Queue cleared"
+      if (error?.message === 'Queue cleared') {
+        console.log('Detectado error "Queue cleared". Programando reconexión en 10 segundos...');
+        setTimeout(startSock, 10000);
+      }
+    });
+
     // Iniciar el servidor HTTP
     httpServer(+PORT);
 
