@@ -7,7 +7,7 @@ const apiClient = axios.create({
   httpsAgent: new https.Agent({
     rejectUnauthorized: false,
   }),
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // Configuración global de Axios
@@ -16,7 +16,7 @@ const apiClientReports = axios.create({
   httpsAgent: new https.Agent({
     rejectUnauthorized: false,
   }),
-  timeout: 10000,
+  timeout: 30000, // Aumentado de 10000 a 30000 ms para evitar timeouts
 });
 
 // Configuración global de Axios
@@ -25,7 +25,7 @@ const apiClientBalance = axios.create({
   httpsAgent: new https.Agent({
     rejectUnauthorized: false,
   }),
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // URL base de la API (obtener desde variables de entorno)
@@ -121,8 +121,10 @@ export class ApiService {
         throw new Error("Empresa no válida. Debe ser 'Cadelga' o 'Fertica'");
       }
       
-      // Realizar la solicitud a la API
-      const response = await apiClientReports.get(endpoint);
+      // Realizar la solicitud a la API con timeout específico más largo
+      const response = await apiClientReports.get(endpoint, {
+        timeout: 60000 // 60 segundos para esta solicitud específica
+      });
       
       // Verificar la respuesta y retornar los datos
       if (response.status === 200 && response.data) {
@@ -259,9 +261,11 @@ export class ApiService {
         "Consultando inventario en tránsito para la empresa:",
         empresa
       );
-      const endpoint = "" + empresa=='Fertica'?'InventarioTransitoFER/1':'InventarioTransitoCAD/1';
-      // Realizar la solicitud a la API
-      const response = await apiClientReports.get(endpoint);    
+      const endpoint = empresa=='Fertica'?'InventarioTransitoFER/1':'InventarioTransitoCAD/1';
+      // Realizar la solicitud a la API con timeout específico más largo
+      const response = await apiClientReports.get(endpoint, {
+        timeout: 60000 // 60 segundos para esta solicitud específica
+      });    
       // Verificar la respuesta y retornar los datos
       if (response.status === 200 && response.data) {
         // La respuesta contiene el documento en base64
@@ -296,8 +300,10 @@ export class ApiService {
       } else {
         throw new Error("Empresa no válida. Debe ser 'Cadelga' o 'Fertica'");
       }    
-      // Realizar la solicitud a la API
-      const response = await apiClientBalance.get(endpoint);   
+      // Realizar la solicitud a la API con timeout específico más largo
+      const response = await apiClientBalance.get(endpoint, {
+        timeout: 60000 // 60 segundos para esta solicitud específica
+      });   
       // Verificar la respuesta y retornar los datos
       if (response.status === 200 && response.data) {
         const responseData = response.data;
@@ -335,8 +341,10 @@ export class ApiService {
         throw new Error("Empresa no válida. Debe ser 'Cadelga' o 'Fertica'");
       }
       
-      // Realizar la solicitud a la API
-      const response = await apiClientReports.get(endpoint);
+      // Realizar la solicitud a la API con timeout específico más largo
+      const response = await apiClientReports.get(endpoint, {
+        timeout: 60000 // 60 segundos para esta solicitud específica
+      });
       
       // Verificar la respuesta y retornar los datos
       if (response.status === 200 && response.data) {
@@ -356,7 +364,7 @@ export class ApiService {
       
       return null;
     } catch (error) {
-      console.error(`Error consultando límites de crédito para ${empresa}:`, error);
+      console.error(`Error consultando Cuentas por cobrar para ${empresa}:`, error);
       return null;
     }
   }
