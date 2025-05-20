@@ -7,7 +7,9 @@ import fs from 'fs';
 import path from 'path';
 
 export const inventarioFlow = addKeyword<BaileysProvider, MysqlAdapter>([
-  "5️⃣ Inventario en tránsito",
+  "5️⃣ Inventario en tránsito", 
+  "5 Inventario en tránsito",
+  "5",
   "Inventario en tránsito",
   "inventario",
   "transito",

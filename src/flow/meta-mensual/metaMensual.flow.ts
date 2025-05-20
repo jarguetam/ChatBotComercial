@@ -17,11 +17,13 @@ if (API_KEY) {
 }
 
 export const metaMensualFlow = addKeyword<BaileysProvider, MysqlAdapter>([
-  "1️⃣ Meta mensual",
-  "Meta mensual",
-  "mi meta",
+  "1 Meta mensual",
+  "1 Meta del mes",
+  "1 Meta",
+  "1",
+  "meta mensual",
+  "meta del mes",
   "meta",
-"meta del mes"
 ])
 .addAction(async (ctx, { flowDynamic, provider, state }) => {
   const phone = ctx.from;

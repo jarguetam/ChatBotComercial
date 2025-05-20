@@ -7,7 +7,9 @@ import fs from 'fs';
 import path from 'path';
 
 export const limitesCreditoFlow = addKeyword<BaileysProvider, MysqlAdapter>([
-  "6️⃣ Limites de credito disponibles",
+  "6️⃣ Limites de credito disponibles", 
+  "6 Limites de credito disponibles",
+  "6",
   "Limites de credito disponibles",
   "credito",
   "creditos",

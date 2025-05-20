@@ -5,7 +5,9 @@ import { ApiService } from "../../services/apiService";
 import { typing } from "../../utils/presence";
 
 export const ventasFlow = addKeyword<BaileysProvider, MysqlAdapter>([
-  "Datos de ventas",
+  "2 Datos de ventas recientes",
+  "2 Datos de ventas",
+  "2",
   "ventas",
   "mis ventas",
   "ventas del mes",

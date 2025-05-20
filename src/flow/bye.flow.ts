@@ -10,7 +10,13 @@ export const byeFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   'bye', 
   'goodbye',
   'salir',
-  'exit'
+  'exit',
+  'bye',
+  'bye',
+  'bye',
+  'bye',
+  'bye',
+  'bye',
 ])
 .addAction(async (ctx, { flowDynamic, provider, state }) => {
   await typing(ctx, provider);

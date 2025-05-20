@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 export const cuentasPorCobrarNuevoFlow = addKeyword<BaileysProvider, MysqlAdapter>([
+  "8 Cuentas por cobrar",   
   "8",
   "cuentas por cobrar",
   "cuentas_por_cobrar", 

@@ -8,6 +8,7 @@ import path from 'path';
 import { menuFlow } from "../menu.flow";
 
 export const estadoCuentaFlow = addKeyword<BaileysProvider, MysqlAdapter>([
+  "7 Estado de cuenta",
   "7",
   "estado de cuenta",
   "edo cuenta",
