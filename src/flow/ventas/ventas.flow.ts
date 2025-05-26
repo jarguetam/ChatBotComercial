@@ -149,7 +149,9 @@ export const ventasFlow = addKeyword<BaileysProvider, MysqlAdapter>([
             .map(
               (item: any) =>
                 `*${getMesEspanol(item.Mes)} ${item.Año}:*\n` +
-                `Venta: ${item.TM} TM\n`
+                `Venta: ${item.TM} TM\n`+
+                `Meta: ${item.Meta} TM\n`+
+                `Cumplimiento: ${item.TM / item.Meta * 100}%\n`
             )
             .join("\n");
       }
@@ -163,7 +165,9 @@ export const ventasFlow = addKeyword<BaileysProvider, MysqlAdapter>([
             .map(
               (item: any) =>
                 `*${getMesEspanol(item.Mes)} ${item.Año}:*\n` +
-                `Venta: $${formatNumber(item.TM)}\n`
+                `Venta: $${formatNumber(item.TM)}\n`+
+                `Meta: $${formatNumber(item.Meta)}\n`+
+                `Cumplimiento: ${item.TM / item.Meta * 100}%\n`
             )
             .join("\n");
       }

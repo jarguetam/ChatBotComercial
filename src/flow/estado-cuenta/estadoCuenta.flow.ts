@@ -134,7 +134,7 @@ export const estadoCuentaFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   // PASO 1: Capturar el nombre o código del cliente
   .addAnswer(
     [
-      "Escribe el nombre o código del cliente que deseas consultar",
+      "Escribe el nombre del cliente que deseas consultar",
       "",
       "*Cancelar* para volver al menú"
     ].join("\n"),
@@ -559,7 +559,7 @@ async function obtenerEstadoCuenta(cliente, empresaValida, { flowDynamic, state,
     "⏳ Descargando estado de cuenta...",
     "Esto puede tardar unos momentos."
   ]);
-  
+ 
   try {
     console.log("Llamando a ApiService.getEstadoCuenta");
     
@@ -621,9 +621,6 @@ async function obtenerEstadoCuenta(cliente, empresaValida, { flowDynamic, state,
       // Mensaje informativo
       await flowDynamic([
         `📄 *Estado de Cuenta*`,
-        `Cliente: *${cliente.CardName}*`,
-        `Empresa: *${empresaValida.charAt(0).toUpperCase() + empresaValida.slice(1)}*`,
-        "",
         "Aquí tienes el reporte actualizado del estado de cuenta:"
       ].join("\n"));
 

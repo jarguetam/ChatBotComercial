@@ -116,7 +116,7 @@ export const limitesCreditoFlow = addKeyword<BaileysProvider, MysqlAdapter>([
     
     // Mostrar mensaje de procesamiento
     await flowDynamic(`Consultando límites de crédito para *${empresaSeleccionada}*. Esto puede tomar unos segundos...`);
-    
+    await typing(ctx, provider);
     try {
       const sellerCode = await state.get("sellerCode");
 
