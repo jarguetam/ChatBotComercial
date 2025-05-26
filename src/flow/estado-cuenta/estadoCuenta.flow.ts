@@ -15,18 +15,37 @@ export const estadoCuentaFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "estado_cuenta",
   "edc"
 ])
-  .addAction(async (ctx, { flowDynamic, provider, state }) => {
-    // Validar que el mensaje sea exactamente "7" o contenga "estado"
+  .addAction(async (ctx, { flowDynamic, provider, state, endFlow }) => {
+    // Validación estricta: solo permitir comandos específicos de estado de cuenta
     const mensaje = ctx.body.trim().toLowerCase();
-    const esComandoValido = mensaje === "7" || 
-                           mensaje.includes("estado") ||
-                           mensaje.includes("cuenta") ||
-                           mensaje.includes("edc") ||
-                           mensaje.includes("7 estado");
+    
+    // Lista de comandos válidos para estado de cuenta
+    const comandosValidos = [
+      "7",
+      "estado de cuenta",
+      "edo cuenta", 
+      "estado_cuenta",
+      "edc",
+      "7 estado de cuenta"
+    ];
+    
+    // Verificar si el mensaje es exactamente uno de los comandos válidos
+    const esComandoValido = comandosValidos.some(comando => 
+      mensaje === comando || 
+      mensaje.includes("estado") || 
+      mensaje.includes("cuenta") ||
+      mensaje.includes("edc")
+    );
+    
+    // Si el mensaje contiene números pero no es exactamente "7", rechazarlo
+    if (/\d/.test(mensaje) && mensaje !== "7" && !mensaje.includes("estado") && !mensaje.includes("cuenta")) {
+      console.log(`Mensaje "${ctx.body}" contiene números pero no es un comando válido para estado de cuenta`);
+      return endFlow(); // Terminar el flujo completamente
+    }
     
     if (!esComandoValido) {
       console.log(`Mensaje "${ctx.body}" no es un comando válido para estado de cuenta`);
-      return; // No procesar este flujo
+      return endFlow(); // Terminar el flujo completamente
     }
     
     console.log(`Comando válido para estado de cuenta: "${ctx.body}"`);

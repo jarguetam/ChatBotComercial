@@ -13,17 +13,36 @@ export const topClientesFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "mejores clientes",
   "principales clientes"
 ])
-.addAction(async (ctx, { flowDynamic, provider, state }) => {
-  // Validar que el mensaje sea exactamente "3" o contenga "clientes"
+.addAction(async (ctx, { flowDynamic, provider, state, endFlow }) => {
+  // Validación estricta: solo permitir comandos específicos de top clientes
   const mensaje = ctx.body.trim().toLowerCase();
-  const esComandoValido = mensaje === "3" || 
-                         mensaje.includes("clientes") || 
-                         mensaje.includes("3 análisis") ||
-                         mensaje.includes("3 analisis");
+  
+  // Lista de comandos válidos para top clientes
+  const comandosValidos = [
+    "3",
+    "top clientes",
+    "clientes",
+    "mejores clientes", 
+    "principales clientes",
+    "3 análisis de clientes importantes",
+    "3 análisis de clientes",
+    "3 analisis de clientes"
+  ];
+  
+  // Verificar si el mensaje es exactamente uno de los comandos válidos
+  const esComandoValido = comandosValidos.some(comando => 
+    mensaje === comando || mensaje.includes("clientes")
+  );
+  
+  // Si el mensaje contiene números pero no es exactamente "3", rechazarlo
+  if (/\d/.test(mensaje) && mensaje !== "3" && !mensaje.includes("clientes")) {
+    console.log(`Mensaje "${ctx.body}" contiene números pero no es un comando válido para top clientes`);
+    return endFlow(); // Terminar el flujo completamente
+  }
   
   if (!esComandoValido) {
     console.log(`Mensaje "${ctx.body}" no es un comando válido para top clientes`);
-    return; // No procesar este flujo
+    return endFlow(); // Terminar el flujo completamente
   }
   
   console.log(`Comando válido para top clientes: "${ctx.body}"`);
@@ -114,12 +133,12 @@ export const topClientesFlow = addKeyword<BaileysProvider, MysqlAdapter>([
         mensajeCadelga =
           "*👥 Top Clientes Cadelga:*\n\n" +
           cadelgaClients
-            .sort((a: any, b: any) => b.Ventas - a.Ventas)
+            .sort((a: any, b: any) => b.TotalVentas - a.TotalVentas)
             .slice(0, 10)
             .map(
               (item: any, index: number) =>
                 `*${index + 1}. ${item.NombreCliente}*\n` +
-                `Ventas: $${formatNumber(item.Ventas)}\n`
+                `Ventas: $${formatNumber(item.TotalVentas)}\n`
             )
             .join("\n");
       }

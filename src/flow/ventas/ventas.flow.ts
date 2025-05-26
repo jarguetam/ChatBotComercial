@@ -7,22 +7,40 @@ import { typing } from "../../utils/presence";
 export const ventasFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "2 Datos de ventas recientes",
   "2 Datos de ventas",
-  "2",
   "ventas",
   "mis ventas", 
   "ventas del mes",
   "ventas recientes"
 ])
-.addAction(async (ctx, { flowDynamic, provider, state }) => {
-  // Validar que el mensaje sea exactamente "2" o contenga "ventas"
+.addAction(async (ctx, { flowDynamic, provider, state, endFlow }) => {
+  // Validación estricta: solo permitir comandos específicos de ventas
   const mensaje = ctx.body.trim().toLowerCase();
-  const esComandoValido = mensaje === "2" || 
-                         mensaje.includes("ventas") || 
-                         mensaje.includes("2 datos");
+  
+  // Lista de comandos válidos para ventas
+  const comandosValidos = [
+    "2",
+    "ventas", 
+    "mis ventas",
+    "ventas del mes",
+    "ventas recientes",
+    "2 datos de ventas recientes",
+    "2 datos de ventas"
+  ];
+  
+  // Verificar si el mensaje es exactamente uno de los comandos válidos
+  const esComandoValido = comandosValidos.some(comando => 
+    mensaje === comando || mensaje.includes("ventas")
+  );
+  
+  // Si el mensaje contiene números pero no es exactamente "2", rechazarlo
+  if (/\d/.test(mensaje) && mensaje !== "2" && !mensaje.includes("ventas")) {
+    console.log(`Mensaje "${ctx.body}" contiene números pero no es un comando válido para ventas`);
+    return endFlow(); // Terminar el flujo completamente
+  }
   
   if (!esComandoValido) {
     console.log(`Mensaje "${ctx.body}" no es un comando válido para ventas`);
-    return; // No procesar este flujo
+    return endFlow(); // Terminar el flujo completamente
   }
   
   console.log(`Comando válido para ventas: "${ctx.body}"`);
