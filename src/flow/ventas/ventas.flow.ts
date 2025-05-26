@@ -10,7 +10,8 @@ export const ventasFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "ventas",
   "mis ventas", 
   "ventas del mes",
-  "ventas recientes"
+  "ventas recientes",
+  "2"
 ])
 .addAction(async (ctx, { flowDynamic, provider, state, endFlow }) => {
   // Validación estricta: solo permitir comandos específicos de ventas
