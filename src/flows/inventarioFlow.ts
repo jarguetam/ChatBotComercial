@@ -8,11 +8,27 @@ import fs from 'fs';
 import path from 'path';
 
 export const inventarioFlow = addKeyword<Provider, Database>([
-  "5",
   "5️⃣",
   "5️⃣ Consultar inventario en transito",
+  "5",
   "Consultar inventario en transito",
 ])
+  .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
+    // Validar que el mensaje sea exactamente "5" o contenga "inventario"
+    const mensaje = ctx.body.trim().toLowerCase();
+    const esComandoValido = mensaje === "5" || 
+                           mensaje === "5️⃣" ||
+                           mensaje.includes("inventario") || 
+                           mensaje.includes("transito") ||
+                           mensaje.includes("tránsito");
+    
+    if (!esComandoValido) {
+      console.log(`Mensaje "${ctx.body}" no es un comando válido para inventario`);
+      return; // No procesar este flujo
+    }
+    
+    console.log(`Comando válido para inventario: "${ctx.body}"`);
+  })
   .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
     await typing(ctx, provider);
     

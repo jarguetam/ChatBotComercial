@@ -18,6 +18,22 @@ export const limitesCreditoFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "limites",
 ])
 .addAction(async (ctx, { flowDynamic, provider, state }) => {
+  // Validar que el mensaje sea exactamente "6" o contenga "credito"
+  const mensaje = ctx.body.trim().toLowerCase();
+  const esComandoValido = mensaje === "6" || 
+                         mensaje.includes("credito") ||
+                         mensaje.includes("crédito") ||
+                         mensaje.includes("limite") ||
+                         mensaje.includes("6 limites");
+  
+  if (!esComandoValido) {
+    console.log(`Mensaje "${ctx.body}" no es un comando válido para límites de crédito`);
+    return; // No procesar este flujo
+  }
+  
+  console.log(`Comando válido para límites de crédito: "${ctx.body}"`);
+})
+.addAction(async (ctx, { flowDynamic, provider, state }) => {
   await typing(ctx, provider);
   console.log("Iniciando flujo de Límites de Crédito");
   

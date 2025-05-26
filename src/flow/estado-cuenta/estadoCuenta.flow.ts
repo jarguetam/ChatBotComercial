@@ -16,6 +16,22 @@ export const estadoCuentaFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "edc"
 ])
   .addAction(async (ctx, { flowDynamic, provider, state }) => {
+    // Validar que el mensaje sea exactamente "7" o contenga "estado"
+    const mensaje = ctx.body.trim().toLowerCase();
+    const esComandoValido = mensaje === "7" || 
+                           mensaje.includes("estado") ||
+                           mensaje.includes("cuenta") ||
+                           mensaje.includes("edc") ||
+                           mensaje.includes("7 estado");
+    
+    if (!esComandoValido) {
+      console.log(`Mensaje "${ctx.body}" no es un comando válido para estado de cuenta`);
+      return; // No procesar este flujo
+    }
+    
+    console.log(`Comando válido para estado de cuenta: "${ctx.body}"`);
+  })
+  .addAction(async (ctx, { flowDynamic, provider, state }) => {
     // Inicializar/resetear el estado al comenzar
     await state.update({
       clienteSeleccionado: null,

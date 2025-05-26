@@ -19,8 +19,24 @@ if (API_KEY) {
 
 export const metaMensualFlow = addKeyword<Provider, Database>([
   "1️⃣ Meta mensual",
+  "1",
   "Meta mensual",
 ])
+  .addAction(async (ctx, { flowDynamic, provider }) => {
+    // Validar que el mensaje sea exactamente "1" o contenga "meta"
+    const mensaje = ctx.body.trim().toLowerCase();
+    const esComandoValido = mensaje === "1" || 
+                           mensaje === "1️⃣" ||
+                           mensaje.includes("meta") || 
+                           mensaje.includes("1 meta");
+    
+    if (!esComandoValido) {
+      console.log(`Mensaje "${ctx.body}" no es un comando válido para meta mensual`);
+      return; // No procesar este flujo
+    }
+    
+    console.log(`Comando válido para meta mensual: "${ctx.body}"`);
+  })
   .addAction(async (ctx, { flowDynamic, provider }) => {
     const phone = ctx.from;
     console.log("Número de teléfono en metaMensualFlow:", phone);

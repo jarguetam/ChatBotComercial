@@ -8,9 +8,9 @@ import { empresaFlow } from "./empresaFlow";
 
 // Crear un flujo de estado de cuenta con cloneFlow para evitar problemas de estado compartido
 export const estadoCuentaFlow = addKeyword<Provider, Database>([
-  "7",
   "7️⃣",
   "7️⃣ Estado de cuenta",
+  "7",
   "Estado de cuenta",
   "cuenta",
   "estado cuenta",
@@ -19,6 +19,21 @@ export const estadoCuentaFlow = addKeyword<Provider, Database>([
   "estado de cuentas de clientes",
   "estado de cuentas de cliente",
 ])
+  .addAction(async (ctx, { flowDynamic, provider, state, endFlow }) => {
+    // Validar que el mensaje sea exactamente "7" o contenga "estado" o "cuenta"
+    const mensaje = ctx.body.trim().toLowerCase();
+    const esComandoValido = mensaje === "7" || 
+                           mensaje === "7️⃣" ||
+                           mensaje.includes("estado") ||
+                           mensaje.includes("cuenta");
+    
+    if (!esComandoValido) {
+      console.log(`Mensaje "${ctx.body}" no es un comando válido para estado de cuenta`);
+      return; // No procesar este flujo
+    }
+    
+    console.log(`Comando válido para estado de cuenta: "${ctx.body}"`);
+  })
   .addAction(async (ctx, { flowDynamic, provider, state, endFlow }) => {
     console.log("INICIO DE FLUJO ESTADO CUENTA - VALIDACIÓN VENDEDOR");
     await typing(ctx, provider);

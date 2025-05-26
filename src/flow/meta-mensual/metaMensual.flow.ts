@@ -18,13 +18,27 @@ if (API_KEY) {
 
 export const metaMensualFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "1 Meta mensual",
-  "1 Meta del mes",
+  "1 Meta del mes", 
   "1 Meta",
   "1",
   "meta mensual",
   "meta del mes",
   "meta",
 ])
+.addAction(async (ctx, { flowDynamic, provider, state }) => {
+  // Validar que el mensaje sea exactamente "1" o contenga "meta"
+  const mensaje = ctx.body.trim().toLowerCase();
+  const esComandoValido = mensaje === "1" || 
+                         mensaje.includes("meta") || 
+                         mensaje.includes("1 meta");
+  
+  if (!esComandoValido) {
+    console.log(`Mensaje "${ctx.body}" no es un comando válido para meta mensual`);
+    return; // No procesar este flujo
+  }
+  
+  console.log(`Comando válido para meta mensual: "${ctx.body}"`);
+})
 .addAction(async (ctx, { flowDynamic, provider, state }) => {
   const phone = ctx.from;
   console.log("Número de teléfono en metaMensualFlow:", phone);

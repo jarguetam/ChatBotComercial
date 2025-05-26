@@ -7,11 +7,29 @@ import { geminiAgent } from "./geminiAgent";
 import { flowOrchestrator } from "./flowOrchestrator";
 
 export const ventasFlow = addKeyword<Provider, Database>([
+  "2️⃣",
+  "2",
   "ventas",
   "venta",
   "vendido",
   "vendidos",
 ])
+  .addAction(async (ctx, { flowDynamic, provider, state }) => {
+    // Validar que el mensaje sea exactamente "2" o contenga "ventas"
+    const mensaje = ctx.body.trim().toLowerCase();
+    const esComandoValido = mensaje === "2" || 
+                           mensaje === "2️⃣" ||
+                           mensaje.includes("ventas") || 
+                           mensaje.includes("venta") ||
+                           mensaje.includes("vendido");
+    
+    if (!esComandoValido) {
+      console.log(`Mensaje "${ctx.body}" no es un comando válido para ventas`);
+      return; // No procesar este flujo
+    }
+    
+    console.log(`Comando válido para ventas: "${ctx.body}"`);
+  })
   .addAction(async (ctx, { flowDynamic, provider, state }) => {
     const phone = ctx.from;
     await typing(ctx, provider);

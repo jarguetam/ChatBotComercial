@@ -8,11 +8,27 @@ import fs from 'fs';
 import path from 'path';
 
 export const limitesCreditoFlow = addKeyword<Provider, Database>([
-  "6",
   "6️⃣",
   "6️⃣ Limites de credito disponibles",
+  "6",
   "Limites de credito disponibles",
 ])
+  .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
+    // Validar que el mensaje sea exactamente "6" o contenga "credito"
+    const mensaje = ctx.body.trim().toLowerCase();
+    const esComandoValido = mensaje === "6" || 
+                           mensaje === "6️⃣" ||
+                           mensaje.includes("credito") ||
+                           mensaje.includes("crédito") ||
+                           mensaje.includes("limite");
+    
+    if (!esComandoValido) {
+      console.log(`Mensaje "${ctx.body}" no es un comando válido para límites de crédito`);
+      return; // No procesar este flujo
+    }
+    
+    console.log(`Comando válido para límites de crédito: "${ctx.body}"`);
+  })
   .addAction(async (ctx, { flowDynamic, provider, state, gotoFlow }) => {
     await typing(ctx, provider);
     

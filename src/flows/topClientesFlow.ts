@@ -18,11 +18,26 @@ if (API_KEY) {
 }
 
 export const topClientesFlow = addKeyword<Provider, Database>([
-  "3",
   "3️⃣",
-  "3️⃣ Top Clientes",
+  "3️⃣ Top Clientes", 
+  "3",
   "Top Clientes",
 ])
+  .addAction(async (ctx, { flowDynamic, provider }) => {
+    // Validar que el mensaje sea exactamente "3" o contenga "clientes"
+    const mensaje = ctx.body.trim().toLowerCase();
+    const esComandoValido = mensaje === "3" || 
+                           mensaje === "3️⃣" ||
+                           mensaje.includes("clientes") || 
+                           mensaje.includes("top clientes");
+    
+    if (!esComandoValido) {
+      console.log(`Mensaje "${ctx.body}" no es un comando válido para top clientes`);
+      return; // No procesar este flujo
+    }
+    
+    console.log(`Comando válido para top clientes: "${ctx.body}"`);
+  })
   .addAction(async (ctx, { flowDynamic, provider }) => {
     const phone = ctx.from;
     console.log("Número de teléfono en topClientesFlow:", phone);

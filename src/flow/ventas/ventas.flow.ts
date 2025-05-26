@@ -9,10 +9,24 @@ export const ventasFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "2 Datos de ventas",
   "2",
   "ventas",
-  "mis ventas",
+  "mis ventas", 
   "ventas del mes",
   "ventas recientes"
 ])
+.addAction(async (ctx, { flowDynamic, provider, state }) => {
+  // Validar que el mensaje sea exactamente "2" o contenga "ventas"
+  const mensaje = ctx.body.trim().toLowerCase();
+  const esComandoValido = mensaje === "2" || 
+                         mensaje.includes("ventas") || 
+                         mensaje.includes("2 datos");
+  
+  if (!esComandoValido) {
+    console.log(`Mensaje "${ctx.body}" no es un comando válido para ventas`);
+    return; // No procesar este flujo
+  }
+  
+  console.log(`Comando válido para ventas: "${ctx.body}"`);
+})
 .addAction(async (ctx, { flowDynamic, provider, state }) => {
   const phone = ctx.from;
   console.log("Número de teléfono en ventasFlow:", phone);

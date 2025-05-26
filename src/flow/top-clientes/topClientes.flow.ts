@@ -14,6 +14,21 @@ export const topClientesFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "principales clientes"
 ])
 .addAction(async (ctx, { flowDynamic, provider, state }) => {
+  // Validar que el mensaje sea exactamente "3" o contenga "clientes"
+  const mensaje = ctx.body.trim().toLowerCase();
+  const esComandoValido = mensaje === "3" || 
+                         mensaje.includes("clientes") || 
+                         mensaje.includes("3 análisis") ||
+                         mensaje.includes("3 analisis");
+  
+  if (!esComandoValido) {
+    console.log(`Mensaje "${ctx.body}" no es un comando válido para top clientes`);
+    return; // No procesar este flujo
+  }
+  
+  console.log(`Comando válido para top clientes: "${ctx.body}"`);
+})
+.addAction(async (ctx, { flowDynamic, provider, state }) => {
   const phone = ctx.from;
   console.log("Número de teléfono en topClientesFlow:", phone);
   await typing(ctx, provider);

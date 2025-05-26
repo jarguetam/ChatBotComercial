@@ -7,8 +7,8 @@ import fs from 'fs';
 import path from 'path';
 
 export const cuentasPorCobrarNuevoFlow = addKeyword<BaileysProvider, MysqlAdapter>([
-  "8 Cuentas por cobrar",   
-  "8",
+  "8 Cuentas por cobrar",
+  "8",   
   "cuentas por cobrar",
   "cuentas_por_cobrar", 
   "cuentas_cobrar",
@@ -16,6 +16,22 @@ export const cuentasPorCobrarNuevoFlow = addKeyword<BaileysProvider, MysqlAdapte
   "CXC",
   "cuentas cobrar"
 ])
+.addAction(async (ctx, { flowDynamic, provider, state }) => {
+  // Validar que el mensaje sea exactamente "8" o contenga "cuentas"
+  const mensaje = ctx.body.trim().toLowerCase();
+  const esComandoValido = mensaje === "8" || 
+                         mensaje.includes("cuentas") ||
+                         mensaje.includes("cobrar") ||
+                         mensaje.includes("cxc") ||
+                         mensaje.includes("8 cuentas");
+  
+  if (!esComandoValido) {
+    console.log(`Mensaje "${ctx.body}" no es un comando válido para cuentas por cobrar`);
+    return; // No procesar este flujo
+  }
+  
+  console.log(`Comando válido para cuentas por cobrar: "${ctx.body}"`);
+})
   .addAction(async (ctx, { flowDynamic, provider, state }) => {
     // Inicializar/resetear el estado al comenzar
     await state.update({

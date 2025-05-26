@@ -49,13 +49,28 @@ const safetySettings = [
 ];
 
 export const topProductosFlow = addKeyword<Provider, Database>([
-  "4",
   "4️⃣",
   "4️⃣ Top Productos",
+  "4",
   "Top Productos",
   "productos",
   "PRODUCTOS",
 ])
+  .addAction(async (ctx, { flowDynamic, provider, state }) => {
+    // Validar que el mensaje sea exactamente "4" o contenga "productos"
+    const mensaje = ctx.body.trim().toLowerCase();
+    const esComandoValido = mensaje === "4" || 
+                           mensaje === "4️⃣" ||
+                           mensaje.includes("productos") || 
+                           mensaje.includes("top productos");
+    
+    if (!esComandoValido) {
+      console.log(`Mensaje "${ctx.body}" no es un comando válido para top productos`);
+      return; // No procesar este flujo
+    }
+    
+    console.log(`Comando válido para top productos: "${ctx.body}"`);
+  })
   .addAction(async (ctx, { flowDynamic, provider, state }) => {
     const phone = ctx.from;
     console.log("Número de teléfono en topProductosFlow:", phone);

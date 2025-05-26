@@ -17,6 +17,22 @@ export const inventarioFlow = addKeyword<BaileysProvider, MysqlAdapter>([
   "productos en transito"
 ])
 .addAction(async (ctx, { flowDynamic, provider, state }) => {
+  // Validar que el mensaje sea exactamente "5" o contenga "inventario"
+  const mensaje = ctx.body.trim().toLowerCase();
+  const esComandoValido = mensaje === "5" || 
+                         mensaje.includes("inventario") || 
+                         mensaje.includes("transito") ||
+                         mensaje.includes("tránsito") ||
+                         mensaje.includes("5 inventario");
+  
+  if (!esComandoValido) {
+    console.log(`Mensaje "${ctx.body}" no es un comando válido para inventario`);
+    return; // No procesar este flujo
+  }
+  
+  console.log(`Comando válido para inventario: "${ctx.body}"`);
+})
+.addAction(async (ctx, { flowDynamic, provider, state }) => {
   await typing(ctx, provider);
   console.log("Iniciando flujo de Inventario en Tránsito");
   
